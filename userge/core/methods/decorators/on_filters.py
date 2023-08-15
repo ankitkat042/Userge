@@ -1,6 +1,6 @@
 # pylint: disable=missing-module-docstring
 #
-# Copyright (C) 2020-2021 by UsergeTeam@Github, < https://github.com/UsergeTeam >.
+# Copyright (C) 2020-2022 by UsergeTeam@Github, < https://github.com/UsergeTeam >.
 #
 # This file is part of < https://github.com/UsergeTeam/Userge > project,
 # and is released under the "GNU v3.0 License Agreement".
@@ -9,6 +9,8 @@
 # All rights reserved.
 
 __all__ = ['OnFilters']
+
+from typing import Optional
 
 from pyrogram.filters import Filter as RawFilter
 
@@ -28,6 +30,7 @@ class OnFilters(RawDecorator):  # pylint: disable=missing-class-docstring
                    allow_via_bot: bool = True,
                    check_client: bool = True,
                    check_downpath: bool = False,
+                   propagate: Optional[bool] = None,
                    check_change_info_perm: bool = False,
                    check_edit_perm: bool = False,
                    check_delete_perm: bool = False,
@@ -69,6 +72,10 @@ class OnFilters(RawDecorator):  # pylint: disable=missing-class-docstring
             check_downpath (``bool``, *optional*):
                 If ``True``, check downpath and make if not exist, defaults to False.
 
+            propagate (``bool``, *optional*):
+                If ``False``, stop propagation to other groups,
+                if ``True`` continue propagation in this group. defaults to None.
+
             check_change_info_perm (``bool``, *optional*):
                 If ``True``, check user has change_info permission before execute,
                 defaults to False.
@@ -109,6 +116,7 @@ class OnFilters(RawDecorator):  # pylint: disable=missing-class-docstring
                                    allow_via_bot=allow_via_bot,
                                    check_client=check_client,
                                    check_downpath=check_downpath,
+                                   propagate=propagate,
                                    check_change_info_perm=check_change_info_perm,
                                    check_edit_perm=check_edit_perm,
                                    check_delete_perm=check_delete_perm,

@@ -1,6 +1,6 @@
 # pylint: disable=missing-module-docstring
 #
-# Copyright (C) 2020-2021 by UsergeTeam@Github, < https://github.com/UsergeTeam >.
+# Copyright (C) 2020-2022 by UsergeTeam@Github, < https://github.com/UsergeTeam >.
 #
 # This file is part of < https://github.com/UsergeTeam/Userge > project,
 # and is released under the "GNU v3.0 License Agreement".
@@ -17,23 +17,25 @@ from pyrogram.errors import ChatWriteForbidden
 from pyrogram.types import Message as RawMessage
 from pyrogram.errors.exceptions import MessageTooLong
 
-from userge import logging, Config
+from userge import config
 from userge.utils import SafeDict, get_file_id_of_media, parse_buttons
 from ..bound import message as _message  # pylint: disable=unused-import
 from ... import client as _client  # pylint: disable=unused-import
 
-_LOG = logging.getLogger(__name__)
-_LOG_STR = "<<<!  :::::  %s  :::::  !>>>"
-
 
 def _gen_string(name: str) -> str:
-    return "**logger** : #" + name.split('.')[-1].upper() + "\n\n{}"
+    parts = name.split('.')
+
+    if len(parts) >= 2:
+        name = parts[-2]
+
+    return "**logger** : #" + name.upper() + "\n\n{}"
 
 
 class ChannelLogger:
     """ Channel logger for Userge """
     def __init__(self, client: Union['_client.Userge', '_client.UsergeBot'], name: str) -> None:
-        self._id = Config.LOG_CHANNEL_ID
+        self._id = config.LOG_CHANNEL_ID
         self._client = client
         self._string = _gen_string(name)
 
@@ -48,8 +50,8 @@ class ChannelLogger:
         Returns:
             str
         """
-        return "<b><a href='https://t.me/c/{}/{}'>Preview</a></b>".format(
-            str(Config.LOG_CHANNEL_ID)[4:], message_id)
+        link = f"https://t.me/c/{str(config.LOG_CHANNEL_ID)[4:]}/{message_id}"
+        return f"<b><a href='{link}'>Preview</a></b>"
 
     async def log(self, text: str, name: str = '') -> int:
         """\nsend text message to log channel.
@@ -67,16 +69,16 @@ class ChannelLogger:
         string = self._string
         if name:
             string = _gen_string(name)
-        _LOG.debug(_LOG_STR, f"logging text : {text} to channel : {self._id}")
         try:
             msg = await self._client.send_message(chat_id=self._id,
-                                                  text=string.format(text.strip()))
+                                                  text=string.format(text.strip()),
+                                                  disable_web_page_preview=True)
         except MessageTooLong:
             msg = await self._client.send_as_file(chat_id=self._id,
                                                   text=string.format(text.strip()),
                                                   filename="logs.log",
                                                   caption=string)
-        return msg.message_id
+        return msg.id
 
     async def fwd_msg(self,
                       message: Union['_message.Message', 'RawMessage'],
@@ -100,11 +102,9 @@ class ChannelLogger:
         Returns:
             None
         """
-        _LOG.debug(
-            _LOG_STR, f"forwarding msg : {message} to channel : {self._id}")
         if isinstance(message, RawMessage):
             if message.media:
-                asyncio.get_event_loop().create_task(self.log("**Forwarding Message...**", name))
+                await self.log("**Forwarding Message...**", name)
                 try:
                     if as_copy:
                         await message.copy(chat_id=self._id)
@@ -131,19 +131,19 @@ class ChannelLogger:
         Returns:
             message_id on success or None
         """
-        caption = caption or ''
         file_id = None
-        if message and message.caption:
-            caption = caption + message.caption.html
+        caption = caption or ''
         if message:
             file_id = get_file_id_of_media(message)
+            if not caption and message.caption:
+                caption = message.caption.html
         if message and message.media and file_id:
             if caption:
                 caption = self._string.format(caption.strip())
             msg = await message.client.send_cached_media(chat_id=self._id,
                                                          file_id=file_id,
                                                          caption=caption)
-            message_id = msg.message_id
+            message_id = msg.id
         else:
             message_id = await self.log(caption)
         return message_id

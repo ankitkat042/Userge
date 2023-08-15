@@ -1,6 +1,6 @@
 # pylint: disable=missing-module-docstring
 #
-# Copyright (C) 2020-2021 by UsergeTeam@Github, < https://github.com/UsergeTeam >.
+# Copyright (C) 2020-2022 by UsergeTeam@Github, < https://github.com/UsergeTeam >.
 #
 # This file is part of < https://github.com/UsergeTeam/Userge > project,
 # and is released under the "GNU v3.0 License Agreement".
@@ -19,13 +19,13 @@ from pyrogram import filters as _filters
 from pyrogram.filters import Filter
 from pyrogram.types import Message as RawMessage
 from pyrogram.handlers import MessageHandler
+from pyrogram import enums
 
 from userge import logging
 from userge.utils.exceptions import StopConversation
 from ... import client as _client  # pylint: disable=unused-import
 
 _LOG = logging.getLogger(__name__)
-_LOG_STR = "<<<!  :::::  %s  :::::  !>>>"
 
 _CL_TYPE = Union['_client.Userge', '_client.UsergeBot']
 _CONV_DICT: Dict[Tuple[int, _CL_TYPE], Union[asyncio.Queue, Tuple[int, asyncio.Queue]]] = {}
@@ -74,7 +74,7 @@ class Conversation:
                 filter specific response.
 
         Returns:
-            On success, the recieved Message is returned.
+            On success, the received Message is returned.
         """
         if self._count >= self._limit:
             raise _MsgLimitReached
@@ -113,13 +113,13 @@ class Conversation:
 
     async def send_message(self,
                            text: str,
-                           parse_mode: Union[str, object] = object) -> RawMessage:
+                           parse_mode: Optional[enums.ParseMode] = None) -> RawMessage:
         """\nSend text messages to the conversation.
 
         Parameters:
             text (``str``):
                 Text of the message to be sent.
-            parse_mode (``str | object``):
+            parse_mode (:obj:`enums.ParseMode`, *optional*):
                 parser to be used to parse text entities.
 
         Returns:
@@ -161,7 +161,7 @@ class Conversation:
         """
         return await self._client.forward_messages(chat_id=self._chat_id,
                                                    from_chat_id=message.chat.id,
-                                                   message_ids=message.message_id)
+                                                   message_ids=message.id)
 
     @staticmethod
     def init(client: _CL_TYPE) -> None:
@@ -190,7 +190,7 @@ class Conversation:
         pack = (self._chat_id, self._client)
         if pack in _CONV_DICT:
             error = f"already started conversation {self._client} with {self._chat_id} !"
-            _LOG.error(_LOG_STR, error)
+            _LOG.error(error)
             raise StopConversation(error)
         if self._user:
             self._user_id = int(self._user) if isinstance(self._user, int) else \
@@ -215,5 +215,5 @@ class Conversation:
             error = (f"ended conversation {self._client} with {self._chat_id}, "
                      "message limit reached!")
         if error:
-            _LOG.error(_LOG_STR, error)
+            _LOG.error(error)
             raise StopConversation(error)
